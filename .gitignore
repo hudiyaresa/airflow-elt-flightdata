@@ -1,3 +1,3 @@
 __pycache__
 .env
-source/init.sql
+/data/source/init.sql
