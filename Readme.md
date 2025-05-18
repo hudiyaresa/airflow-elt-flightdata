@@ -8,7 +8,7 @@
 5. [Screenshots](#screenshots)
 
 ## Overview
-This project builds an end-to-end data pipeline for a flight booking system. It extracts data from a source PostgreSQL DB, stores it in MinIO, loads it into a warehouse, and transforms it into analytical tables — all orchestrated by Apache Airflow.
+This project builds an orchestrated data pipeline for a flight booking system using Apache Airflow. It extracts data from a source PostgreSQL DB, stores it in MinIO, loads it into a warehouse, and transforms it into analytical tables.
 
 ## Architecture
 - **Source DB**: PostgreSQL (`bookings` schema)
@@ -18,13 +18,15 @@ This project builds an end-to-end data pipeline for a flight booking system. It 
 - **Docker**: All services are containerized using Docker Compose
 
 ## Pipeline Flow
-1. **Extract**: Extract tables from PostgreSQL → MinIO (CSV)
-2. **Load**: MinIO CSV → PostgreSQL staging schema
-3. **Transform**: SQL-based transform into `dim_` and `fct_` tables in warehouse
+| Step | Process                 | Description                                                |
+|------|-------------------------|------------------------------------------------------------|
+| 1    | Extract                 | From `pacflight_db` to MinIO (`/temp/*.csv`)               |
+| 2    | Load to Staging         | From MinIO to `staging` Postgres Schema        |
+| 3    | Transform to Warehouse  | SQL-based transform into `dim_` and `fct_` tables in warehouse   |
 
 ## Setup and Run
 ```bash
-git clone https://github.com/yourusername/flights-data-pipeline.git
+git clone https://github.com/hudiyaresa/airflow-etl-flightdata.git
 cd flights-data-pipeline
 docker-compose up
 ````
@@ -44,12 +46,5 @@ Access:
 
 
 
-# Data Pipeline Overview
-
-| Step | Process                 | Description                                                |
-|------|-------------------------|------------------------------------------------------------|
-| 1    | Extract                 | From `pacflight_db` to MinIO (`/temp/*.csv`)               |
-| 2    | Load to Staging         | From MinIO to `staging.*` using `pangres.upsert()`         |
-| 3    | Transform to Warehouse  | Read SQL from file and execute into `warehouse.*` schema   |
 
 

@@ -42,7 +42,7 @@ def load_group(table_list, table_pkey):
 @task_group(group_id="transform_group")
 def transform_group(transform_tables):
     for table in transform_tables:
-        sql_file_path = f"/opt/airflow/dags/flights_data_pipeline/models/{table}.sql"
+        sql_file_path = f"/opt/airflow/dags/flights_data_pipeline/query/final/{table}.sql"
         try:
             sql_content = Path(sql_file_path).read_text()
         except FileNotFoundError:
