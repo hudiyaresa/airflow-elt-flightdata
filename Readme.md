@@ -187,6 +187,7 @@ docker-compose up --build
 | Available DAGs                           |
 | ---------------------------------------- |
 | ![List DAG](docs/list_dag_available.png) | 
+
 | Task List                             |
 | ------------------------------------- |
 | ![List Tasks](docs/list_task_dag.png) |
@@ -194,9 +195,5 @@ docker-compose up --build
 ### 4. Querying Final Warehouse
 
 ![Query Sample](docs/example_query_from_final_dwh.png)
-
----
-
-
 
 ---
