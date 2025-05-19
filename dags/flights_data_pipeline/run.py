@@ -50,7 +50,7 @@ def transform_group(transform_tables):
         
         PostgresOperator(
             task_id=f"transform_{table}",
-            postgres_conn_id='pacflight_db',
+            postgres_conn_id='warehouse_pacflight',
             sql=sql_content
         )
 
@@ -88,7 +88,7 @@ def flights_data_pipeline():
     }
 
     transform_tables = [
-        'dim_aircrafts', 'dim_airport', 'dim_seat', 'dim_passenger',
+        'dim_aircraft', 'dim_airport', 'dim_seat', 'dim_passenger',
         'fct_boarding_pass', 'fct_booking_ticket',
         'fct_seat_occupied_daily', 'fct_flight_activity'
     ]
