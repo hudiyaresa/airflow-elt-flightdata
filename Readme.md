@@ -54,6 +54,7 @@ flights-data-pipeline/
 │       ├── components/
 │       │   ├── extract.py
 │       │   └── load.py
+│       │   └── transform.py
 │       ├── query/stg/         ← full load SQL per table
 │       └── models/            ← transformation SQL for data mart
 │
