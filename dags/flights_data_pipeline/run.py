@@ -1,11 +1,10 @@
 from airflow.decorators import dag, task_group
 from airflow.operators.python import PythonOperator
-from airflow.operators.postgres_operator import PostgresOperator
 from datetime import datetime
-from pathlib import Path
 
 from flights_data_pipeline.components.extract import Extract
 from flights_data_pipeline.components.load import Load
+from flights_data_pipeline.components.transform import Transform
 
 # ========== Task Groups ==========
 
@@ -20,10 +19,7 @@ def extract_group(table_list):
 
 @task_group(group_id="load_group")
 def load_group(table_list, table_pkey):
-    from airflow.operators.python import PythonOperator
     load_tasks = []
-
-    # task load for each table
     for table in table_list:
         task = PythonOperator(
             task_id=f"load_{table}",
@@ -35,24 +31,27 @@ def load_group(table_list, table_pkey):
         )
         load_tasks.append(task)
 
-    # Set dependency sequential
+    # Set sequential load due to FK dependencies
     for i in range(1, len(load_tasks)):
         load_tasks[i - 1] >> load_tasks[i]
 
 @task_group(group_id="transform_group")
 def transform_group(transform_tables):
+    from airflow.operators.empty import EmptyOperator
+    from airflow.models.baseoperator import chain
+
+    previous = None
     for table in transform_tables:
-        sql_file_path = f"/opt/airflow/dags/flights_data_pipeline/query/final/{table}.sql"
-        try:
-            sql_content = Path(sql_file_path).read_text()
-        except FileNotFoundError:
-            raise ValueError(f"SQL file not found for table: {table}")
-        
-        PostgresOperator(
+        transform = Transform.build_operator(
             task_id=f"transform_{table}",
-            postgres_conn_id='warehouse_pacflight',
-            sql=sql_content
+            table_name=table,
+            sql_dir="flights_data_pipeline/query/final"
         )
+
+        if previous:
+            previous >> transform
+        previous = transform
+
 
 # ========== Main DAG ==========
 
@@ -64,7 +63,6 @@ def transform_group(transform_tables):
     tags=['pacflight', 'ETL']
 )
 def flights_data_pipeline():
-    # Define tables
     table_list = [
         'aircrafts_data',
         'airports_data',
@@ -93,12 +91,12 @@ def flights_data_pipeline():
         'fct_seat_occupied_daily', 'fct_flight_activity'
     ]
 
-    # Task groups
+    # Run task groups
     extract = extract_group(table_list)
     load = load_group(table_list, table_pkey)
     transform = transform_group(transform_tables)
 
-    # Task dependencies
+    # Dependency flow
     extract >> load >> transform
 
 flights_data_pipeline()

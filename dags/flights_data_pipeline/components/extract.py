@@ -1,9 +1,10 @@
 from airflow.exceptions import AirflowException, AirflowSkipException
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from datetime import timedelta
-from helper.minio import MinioClient, CustomMinio
+from helper.minio import CustomMinio
 import logging
 import pandas as pd
+import json
+
 
 class Extract:
     @staticmethod
@@ -43,15 +44,30 @@ class Extract:
                 logging.warning(f"[Extract] Table {table_name} is empty. Skipping...")                
                 raise AirflowSkipException(f"{table_name} has no data. Skipped...")
 
+            # === Handle JSON columns that need to be dumped as string ===
+            if table_name == 'aircrafts_data':
+                df['model'] = df['model'].apply(json.dumps)
+
+            if table_name == 'airports_data':
+                df['airport_name'] = df['airport_name'].apply(json.dumps)
+                df['city'] = df['city'].apply(json.dumps)
+
+            if table_name == 'tickets':
+                df['contact_data'] = df['contact_data'].apply(lambda x: json.dumps(x) if x else None)
+
+            # === Replace NaN with None for better compatibility with CSV ===
+            if table_name == 'flights':
+                df = df.replace({float('nan'): None})
+
             bucket_name = 'extracted-data'
             logging.info(f"[Extract] Writing data to MinIO bucket: {bucket_name}, object: {object_name}")
 
             CustomMinio._put_csv(df, bucket_name, object_name)
-            logging.info(f"[Extract] Extraction completed for table: {table_name}")            
+            logging.info(f"[Extract] Extraction completed for table: {table_name}")
 
         except AirflowSkipException as e:
-            logging.warning(f"[Extract] Skipped extraction for {table_name}: {str(e)}")            
+            logging.warning(f"[Extract] Skipped extraction for {table_name}: {str(e)}")
             raise e
         except Exception as e:
-            logging.error(f"[Extract] Failed extracting {table_name}: {str(e)}")            
+            logging.error(f"[Extract] Failed extracting {table_name}: {str(e)}")
             raise AirflowException(f"Error when extracting {table_name} : {str(e)}")

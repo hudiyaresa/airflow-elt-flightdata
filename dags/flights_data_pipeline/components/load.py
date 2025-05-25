@@ -3,8 +3,8 @@ from airflow.exceptions import AirflowSkipException, AirflowException
 from helper.minio import CustomMinio
 import logging
 import json
-import ast
 import pandas as pd
+
 
 class Execute:
     @staticmethod
@@ -22,21 +22,10 @@ class Execute:
             for _, row in dataframe.iterrows():
                 record = row.to_dict()
 
-                # Convert dictionary-style strings to JSON-compatible format
-                for key, value in record.items():
-                    if isinstance(value, str):
-                        try:
-                            # Attempt to load and then dump again to ensure valid JSON format
-                            record[key] = json.dumps(json.loads(value)) if value.startswith('{') else value
-                        except json.JSONDecodeError:
-                            # If the value isn't valid JSON, just leave it as it is
-                            pass
-
-                # Run the query with the sanitized data
                 pg_hook.run(query, parameters=record)
 
         except Exception as e:
-            logging.error(f"Error executing query: {e}")
+            logging.error(f"[Load] Error executing query: {e}")
             raise AirflowException(f"Error when loading data: {str(e)}")
 
         finally:
@@ -44,9 +33,6 @@ class Execute:
             connection.commit()
             connection.close()
 
-
-import json
-import ast
 
 class Load:
     @staticmethod
@@ -58,30 +44,19 @@ class Load:
             bucket_name = 'extracted-data'
 
             # Load CSV from MinIO to DataFrame
-            logging.info(f"[Load] Downloading {object_name} from {bucket_name}")
+            logging.info(f"[Load] Downloading {object_name} from bucket {bucket_name}")
             df = CustomMinio._get_dataframe(bucket_name, object_name)
 
             if df.empty:
                 raise AirflowSkipException(f"{table_name} has no data to load. Skipped...")
 
-            # Perbaiki data JSON pada kolom 'model' menggunakan ast.literal_eval()
-            if table_name == 'aircrafts_data':
-                df['model'] = df['model'].apply(lambda x: json.dumps(ast.literal_eval(x)) if isinstance(x, str) else x)
-
-            if table_name == 'airports_data':
-                df['airport_name'] = df['airport_name'].apply(lambda x: json.dumps(ast.literal_eval(x)) if isinstance(x, str) else x)
-                df['city'] = df['city'].apply(lambda x: json.dumps(ast.literal_eval(x)) if isinstance(x, str) else x)
-
-            if table_name == 'tickets':
-                df['contact_data'] = df['contact_data'].apply(lambda x: json.dumps(ast.literal_eval(x)) if isinstance(x, str) else x)
-
             if table_name == 'flights':
                 df = df.replace({float('nan'): None})
 
-            # Path to query insert
+            # Path to query file
             query_path = f"flights_data_pipeline/query/stg/{table_name}.sql"
 
-            # Execute insert query
+            # Execute the SQL insert
             Execute._insert_dataframe(
                 connection_id="warehouse_pacflight",
                 query_path=query_path,
