@@ -9,8 +9,7 @@
 4. [Project Structure](#project-structure)  
 5. [Environment Setup](#environment-setup)  
 6. [How to Run the Pipeline](#how-to-run-the-pipeline)  
-7. [Screenshots](#screenshots)  
-8. [License](#license)
+7. [Screenshots](#screenshots)
 
 ---
 
